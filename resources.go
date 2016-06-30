@@ -13,6 +13,7 @@ import (
 type Resources struct {
 	stash stash.Stash
 	queue *Queue
+	linters map[string]string
 }
 
 func GetResources(logger *lorg.Log, config *config) (*Resources, error) {
@@ -37,6 +38,7 @@ func GetResources(logger *lorg.Log, config *config) (*Resources, error) {
 	resources := &Resources{
 		stash: stashClient,
 		queue: queue,
+		linters: config.Resources.Linters, 
 	}
 
 	return resources, nil

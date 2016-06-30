@@ -38,7 +38,7 @@ type Task interface {
 	GetState() TaskState
 	SetState(TaskState)
 	GetBuffer() *bytes.Buffer
-	SetBuffer(*bytes.Buffer)
+	GetErrorBuffer() *bytes.Buffer
 	GetTitle() string
 }
 
@@ -46,6 +46,7 @@ type task struct {
 	id     int64
 	state  TaskState
 	buffer *bytes.Buffer
+	errorBuffer *bytes.Buffer
 }
 
 func (task *task) GetID() int64 {
@@ -72,6 +73,11 @@ func (task *task) GetBuffer() *bytes.Buffer {
 	return task.buffer
 }
 
-func (task *task) SetBuffer(buffer *bytes.Buffer) {
-	task.buffer = buffer
+
+func (task *task) GetErrorBuffer() *bytes.Buffer {
+	if task.errorBuffer == nil {
+		task.errorBuffer = &bytes.Buffer{}
+	}
+
+	return task.errorBuffer
 }

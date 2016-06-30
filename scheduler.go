@@ -49,19 +49,22 @@ func (scheduler *Scheduler) serve(task Task) {
 	)
 
 	logger.SetOutput(
-		lorg.NewOutput(os.Stderr).
-			SetLevelWriterCondition(
-				lorg.LevelError,
-				os.Stderr, uncoloredWriter{task.GetBuffer()},
-			).
-			SetLevelWriterCondition(
-				lorg.LevelWarning,
-				os.Stderr, uncoloredWriter{task.GetBuffer()},
-			).
-			SetLevelWriterCondition(
-				lorg.LevelInfo,
-				os.Stderr, uncoloredWriter{task.GetBuffer()},
-			),
+		lorg.NewOutput(
+			os.Stderr,
+		).SetLevelWriterCondition(
+			lorg.LevelError,
+			os.Stderr,
+			uncolored{unprefixed{task.GetBuffer()}},
+			uncolored{unprefixed{task.GetErrorBuffer()}},
+		).SetLevelWriterCondition(
+			lorg.LevelWarning,
+			os.Stderr,
+			uncolored{unprefixed{task.GetBuffer()}},
+		).SetLevelWriterCondition(
+			lorg.LevelInfo,
+			os.Stderr,
+			uncolored{unprefixed{task.GetBuffer()}},
+		),
 	)
 
 	processor := NewProcessor(task)

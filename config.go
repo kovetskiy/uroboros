@@ -22,6 +22,7 @@ type config struct {
 			Username string `toml:"username" required:"true"`
 			Password string `toml:"password" required:"true"`
 		} `toml:"stash" required:"true"`
+		Linters map[string]string `toml:"linters"`
 	} `toml:"resources" required:"true"`
 }
 

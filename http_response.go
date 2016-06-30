@@ -15,4 +15,3 @@ type ResponseTask struct {
 type ResponseTaskList struct {
 	Tasks []ResponseTask `json:"tasks"`
 }
-

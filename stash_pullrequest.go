@@ -8,36 +8,24 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	"github.com/kovetskiy/executil"
 	"github.com/kovetskiy/stash"
 	"github.com/seletskiy/hierr"
-)
-
-const (
-	StashPullRequestBuildError = `
-![build failure](https://img.shields.io/badge/build-failure-red.svg)
-$link
-` + "```" + `
-$buffer
-` + "```" + ``
-
-	StashPullRequestBuildSuccess = `
-![build passing](https://img.shields.io/badge/build-passing-brightgreen.svg)
-$link
-` + "```" + `
-$buffer
-` + "```" + ``
+	"github.com/seletskiy/tplutil"
 )
 
 type ProcessorStashPullRequest struct {
 	processor
-	task          *TaskStashPullRequest
-	pullRequest   stash.PullRequest
-	gopath        string
-	sources       string
-	buildWithMake bool
-	testWithMake  bool
+	task        *TaskStashPullRequest
+	pullRequest stash.PullRequest
+	gopath      string
+	sources     string
+	makefile    struct {
+		build bool
+		test  bool
+	}
 }
 
 func NewProcessorStashPullRequest(
@@ -49,40 +37,17 @@ func NewProcessorStashPullRequest(
 func (processor *ProcessorStashPullRequest) Process() {
 	processor.task.SetState(TaskStateProcessing)
 
-	var commentText string
-
 	err := processor.process()
 	if err != nil {
 		processor.logger.Error(err)
 		processor.task.SetState(TaskStateError)
-		commentText = StashPullRequestBuildError
-	} else {
-		processor.logger.Infof(":: build passing")
-		processor.task.SetState(TaskStateSuccess)
-		commentText = StashPullRequestBuildSuccess
+		processor.comment(TemplateMarkdownBuildFailure)
+		return
 	}
 
-	replacer := strings.NewReplacer(
-		`$link`, "http://uroboro.s/task/"+fmt.Sprint(processor.task.GetID()),
-		`$buffer`, processor.task.GetBuffer().String(),
-	)
-
-	processor.logger.Debugf("creating comment to pull-request")
-
-	_, err = processor.resources.stash.CreateComment(
-		processor.task.Project,
-		processor.task.Repository,
-		processor.task.Identifier,
-		replacer.Replace(commentText),
-	)
-	if err != nil {
-		processor.logger.Error(
-			hierr.Errorf(
-				err,
-				"can't create comment in pull-request",
-			),
-		)
-	}
+	processor.logger.Infof(":: build passing")
+	processor.task.SetState(TaskStateSuccess)
+	processor.comment(TemplateMarkdownBuildPassing)
 }
 
 func (processor *ProcessorStashPullRequest) process() error {
@@ -133,37 +98,46 @@ func (processor *ProcessorStashPullRequest) process() error {
 	return nil
 }
 
-func (processor *ProcessorStashPullRequest) lint() error {
-	linters := [][]string{
-		[]string{
-			"govet",
-			"go", "tool", "vet", ".",
-		},
-		[]string{
-			"misspell",
-			"misspell", ".",
-		},
-		[]string{
-			"ineffassign",
-			"ineffassign", ".",
-		},
-		[]string{
-			"gofmt",
-			"gofmt", "-s", "-l", ".",
-		},
-		[]string{
-			"gocyclo",
-			"gocyclo", "-over", "10", ".",
-		},
+func (processor *ProcessorStashPullRequest) comment(
+	template *template.Template,
+) {
+	text, err := tplutil.ExecuteToString(template, map[string]interface{}{
+		"taskID": processor.task.GetID(),
+		"logs":   processor.task.GetBuffer().String(),
+		"errors": processor.task.GetErrorBuffer().String(),
+	})
+	if err != nil {
+		processor.logger.Error(err)
 	}
 
-	for _, linter := range linters {
+	processor.logger.Debugf("creating comment to pull-request")
+
+	comment, err := processor.resources.stash.CreateComment(
+		processor.task.Project,
+		processor.task.Repository,
+		processor.task.Identifier,
+		text,
+	)
+	if err != nil {
+		processor.logger.Error(
+			hierr.Errorf(
+				err,
+				"can't create comment in pull-request",
+			),
+		)
+	}
+
+	processor.logger.Debugf("comment #%v created", comment.ID)
+}
+
+func (processor *ProcessorStashPullRequest) lint() error {
+	for linter, cmd := range processor.resources.linters {
 		processor.logger.Infof(
-			":: checking source code using %s",
-			linter[0],
+			":: lintering source code using %s",
+			linter,
 		)
 
-		_, err := processor.spawn(linter[1], linter[2:]...)
+		_, err := processor.spawn("sh", "-c", cmd)
 		if err != nil {
 			if executil.IsExitError(err) {
 				output := strings.Split(
@@ -175,14 +149,14 @@ func (processor *ProcessorStashPullRequest) lint() error {
 				}
 
 				return fmt.Errorf(
-					"%s exited with non-zero exit code",
-					linter[0],
+					"linter %s exited with non-zero exit code",
+					linter,
 				)
 			}
 
 			return hierr.Errorf(
 				err,
-				"can't lint project",
+				"an error occurred while lintering source code",
 			)
 		}
 	}
@@ -193,7 +167,7 @@ func (processor *ProcessorStashPullRequest) lint() error {
 func (processor *ProcessorStashPullRequest) build() error {
 	var stderr string
 	var err error
-	if processor.buildWithMake {
+	if processor.makefile.build {
 		processor.logger.Infof(":: building project using make build")
 
 		stderr, err = processor.makeBuild()
@@ -210,7 +184,11 @@ func (processor *ProcessorStashPullRequest) build() error {
 				processor.logger.Error(line)
 			}
 
-			return errors.New("build failed")
+			if processor.makefile.build {
+				return errors.New("make build exited with non-zero exit code")
+			} else {
+				return errors.New("go build exited with non-zero exit code")
+			}
 		}
 
 		return hierr.Errorf(
@@ -225,7 +203,7 @@ func (processor *ProcessorStashPullRequest) build() error {
 func (processor *ProcessorStashPullRequest) test() error {
 	var stderr string
 	var err error
-	if processor.testWithMake {
+	if processor.makefile.test {
 		processor.logger.Infof(":: testing project using make test")
 
 		stderr, err = processor.makeTest()
@@ -242,7 +220,11 @@ func (processor *ProcessorStashPullRequest) test() error {
 				processor.logger.Error(line)
 			}
 
-			return errors.New("tests failed")
+			if processor.makefile.test {
+				return errors.New("make test exited with non-zero exit code")
+			} else {
+				return errors.New("go test exited with non-zero exit code")
+			}
 		}
 
 		return hierr.Errorf(
@@ -271,14 +253,14 @@ func (processor *ProcessorStashPullRequest) lookupMakefileTargets() error {
 
 	for _, line := range strings.Split(string(contents), "\n") {
 		if strings.HasPrefix(line, "build:") {
-			processor.buildWithMake = true
+			processor.makefile.build = true
 		}
 
 		if strings.HasPrefix(line, "test:") {
-			processor.testWithMake = true
+			processor.makefile.test = true
 		}
 
-		if processor.buildWithMake && processor.testWithMake {
+		if processor.makefile.build && processor.makefile.test {
 			break
 		}
 	}
@@ -322,7 +304,7 @@ func (processor *ProcessorStashPullRequest) fetch() error {
 		":: cloning repository %s", cloneURL,
 	)
 
-	gopath, sources, err := processor.clone(cloneURL)
+	gopath, sources, err := processor.prepareSources(cloneURL, branch)
 	if err != nil {
 		return hierr.Errorf(
 			err,
@@ -332,19 +314,6 @@ func (processor *ProcessorStashPullRequest) fetch() error {
 
 	processor.gopath = gopath
 	processor.sources = sources
-
-	processor.logger.Infof(
-		":: switching to branch %s", branch,
-	)
-
-	err = processor.checkout(branch)
-	if err != nil {
-		return hierr.Errorf(
-			err,
-			"can't checkout repository branch to %s",
-			branch,
-		)
-	}
 
 	processor.logger.Infof(
 		":: fetching project's dependencies",
@@ -358,7 +327,7 @@ func (processor *ProcessorStashPullRequest) fetch() error {
 				processor.logger.Error(line)
 			}
 
-			return errors.New("go get failed")
+			return errors.New("go get exited with non-zero exit code")
 		}
 
 		return hierr.Errorf(
@@ -401,10 +370,10 @@ func (processor *ProcessorStashPullRequest) getCloneURL() (string, error) {
 	return repository.SshUrl(), nil
 }
 
-func (processor *ProcessorStashPullRequest) clone(
-	url string,
+func (processor *ProcessorStashPullRequest) prepareSources(
+	url string, branch string,
 ) (string, string, error) {
-	gopath, err := ioutil.TempDir(os.TempDir(), "uroboros_gopath_")
+	gopath, err := ioutil.TempDir(os.TempDir(), "uroboros_")
 	if err != nil {
 		return "", "", hierr.Errorf(
 			err, "can't create temporary directory",
@@ -417,13 +386,20 @@ func (processor *ProcessorStashPullRequest) clone(
 	)
 
 	_, err = processor.spawn("git", "clone", url, sources)
+	if err != nil {
+		return "", "", err
+	}
+
+	processor.logger.Infof(
+		":: switching to branch %s", branch,
+	)
+
+	_, err = processor.spawn("git", "checkout", branch)
+	if err != nil {
+		return "", "", err
+	}
 
 	return gopath, sources, err
-}
-
-func (processor *ProcessorStashPullRequest) checkout(branch string) error {
-	_, err := processor.spawn("git", "checkout", branch)
-	return err
 }
 
 func (processor *ProcessorStashPullRequest) goget() (string, error) {

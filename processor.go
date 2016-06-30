@@ -35,7 +35,9 @@ func (processor *processor) SetLogger(logger *lorg.Log) {
 	processor.logger = logger
 }
 
-func (processor *processor) execute(command *exec.Cmd) ([]byte, []byte, error) {
+func (processor *processor) execute(
+	command *exec.Cmd,
+) ([]byte, []byte, error) {
 	dir := "./"
 	if command.Dir != "" {
 		dir = command.Dir

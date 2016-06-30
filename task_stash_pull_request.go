@@ -40,6 +40,10 @@ func NewTaskStashPullRequest(url string) (*TaskStashPullRequest, error) {
 
 
 func (request *TaskStashPullRequest) GetTitle() string {
-	return fmt.Sprintf("[stash pull-request] %s", request.URL)
+	return fmt.Sprintf(
+		"[stash pull-request] %s/%s/%s #%s",
+		request.Host, request.Project, request.Repository,
+		request.Identifier, 
+	)
 }
 
