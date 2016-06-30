@@ -1,48 +1,41 @@
 package main
 
-import (
-	"os"
-	"os/exec"
+//func ExecuteWithDir(
+//dir, name string, args ...string,
+//) (string, error) {
+//cmd := exec.Command(name, args...)
+//cmd.Dir = dir
 
-	"github.com/kovetskiy/executil"
-)
+//coreLogger.Debugf("exec %q at %s", cmd.Args, dir)
 
-func ExecuteWithDir(
-	dir, name string, args ...string,
-) (string, error) {
-	cmd := exec.Command(name, args...)
-	cmd.Dir = dir
+//stdout, _, err := executil.Run(cmd)
+//return string(stdout), err
+//}
 
-	logger.Debugf("exec %q at %s", cmd.Args, dir)
+//func ExecuteWithGo(
+//dir, gopath, name string, args ...string,
+//) (string, error) {
+//cmd := exec.Command(name, args...)
+//cmd.Dir = dir
+//cmd.Env = append(
+//[]string{
+//"GOPATH=" + gopath,
+//"GO15VENDOREXPERIMENT=1",
+//},
+//os.Environ()...,
+//)
 
-	stdout, _, err := executil.Run(cmd)
-	return string(stdout), err
-}
+//coreLogger.Debugf("exec %q at %s with GOPATH=%s", cmd.Args, dir, gopath)
 
-func ExecuteWithGo(
-	dir, gopath, name string, args ...string,
-) (string, error) {
-	cmd := exec.Command(name, args...)
-	cmd.Dir = dir
-	cmd.Env = append(
-		[]string{
-			"GOPATH=" + gopath,
-			"GO15VENDOREXPERIMENT=1",
-		},
-		os.Environ()...,
-	)
+//stdout, _, err := executil.Run(cmd)
+//return string(stdout), err
+//}
 
-	logger.Debugf("exec %q at %s with GOPATH=%s", cmd.Args, dir, gopath)
+//func Execute(name string, args ...string) (string, error) {
+//cmd := exec.Command(name, args...)
 
-	stdout, _, err := executil.Run(cmd)
-	return string(stdout), err
-}
+//coreLogger.Debugf("exec %q", cmd.Args)
 
-func Execute(name string, args ...string) (string, error) {
-	cmd := exec.Command(name, args...)
-
-	logger.Debugf("exec %q", cmd.Args)
-
-	stdout, _, err := executil.Run(cmd)
-	return string(stdout), err
-}
+//stdout, _, err := executil.Run(cmd)
+//return string(stdout), err
+//}

@@ -1,15 +1,15 @@
 package main
 
 import (
-	"net/http"
-
 	"github.com/kovetskiy/godocs"
+	"github.com/kovetskiy/lorg"
+	"github.com/seletskiy/hierr"
 )
 
 var (
 	version = "1.0"
 	usage   = `uroboros ` + version +
-		` - the continious integration snake which will gobble ur code
+		` - the continious integration snake which will gobble u and ur code
 
 @TODO
 
@@ -17,39 +17,69 @@ Usage:
 	uroboros [options]
 
 Options:
-    -h --help  Show this help.
-	-c <path>  Specify configuration file.
-				[default: /etc/uroboros/uroboros.conf]
+    -h --help           Show this help.
+    -c --config <path>  Specify configuration file.
+                         [default: /etc/uroboros/uroboros.conf]
+    --debug             Debug mode.
+    --trace             Trace mode.
 `
 )
 
 var (
-	logger = getLogger()
+	coreLogger = getLogger()
+	debugMode  = false
+	traceMode  = false
 )
 
 func main() {
 	args, err := godocs.Parse(usage, version, godocs.UsePager)
+	if err != nil {
+		fatalln(err)
+	}
+
+	debugMode = args["--debug"].(bool)
+	if debugMode {
+		coreLogger.SetLevel(lorg.LevelDebug)
+	}
+
+	traceMode = args["--trace"].(bool)
+	if traceMode {
+		coreLogger.SetLevel(lorg.LevelTrace)
+	}
+
+	config, err := getConfig(args["--config"].(string))
+	if err != nil {
+		hierr.Fatalf(
+			err,
+			"can't configure uroboros server",
+		)
+	}
+
+	resources, err := GetResources(coreLogger, config)
+	if err != nil {
+		hierr.Fatalf(
+			err,
+			"can't configure uroboros resources",
+		)
+	}
 
 	var (
-		configPath = args["-c"].(string)
+		scheduler = NewScheduler(
+			coreLogger.NewChildWithPrefix("[scheduler]"), resources,
+		)
+
+		handler = NewHTTPHandler(
+			coreLogger.NewChildWithPrefix("[handler]"),
+			resources,
+		)
 	)
 
-	config, err := getConfig(configPath)
-	if err != nil {
-		logger.Fatalf("can't load configuration file %s: %s", configPath, err)
-	}
+	scheduler.Schedule(config.Tasks.Threads)
 
-	stashAPI, err := getStashAPI(
-		config.Stash.Host, config.Stash.User, config.Stash.Password,
-	)
-	if err != nil {
-		logger.Fatalf("can't create stash api resource: %s", err)
-	}
-
-	logger.Infof("listening on %s", config.HTTP.ListenAddress)
-
-	err = http.ListenAndServe(config.HTTP.ListenAddress, server)
-	if err != nil {
-		logger.Fatal(err)
+	if err = handler.Listen(config.HTTP.Address); err != nil {
+		hierr.Fatalf(
+			err,
+			"can't serve http connections",
+		)
 	}
 }
