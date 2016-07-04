@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net"
 	"net/http"
 	"strconv"
@@ -13,180 +12,195 @@ import (
 	"github.com/seletskiy/hierr"
 )
 
-type HTTPHandler struct {
+const (
+	prefixAPI    = "/api/v1/"
+	prefixBadges = "/badges/"
+)
+
+type WebServer struct {
+	mux       *http.ServeMux
 	address   string
 	logger    *lorg.Log
-	resources *Resources
-	handled   int64
+	resources *resources
+	requests  int64
 }
 
-func NewHTTPHandler(
+func NewWebServer(
 	logger *lorg.Log,
-	resources *Resources,
-) *HTTPHandler {
-	handler := &HTTPHandler{
+	resources *resources,
+) *WebServer {
+	server := &WebServer{
+		mux:       http.NewServeMux(),
 		logger:    logger,
 		resources: resources,
 	}
 
-	return handler
+	server.mux.HandleFunc(prefixAPI, server.Handle)
+	server.mux.HandleFunc(
+		prefixBadges,
+		http.FileServer(http.Dir(".")).ServeHTTP,
+	)
+
+	return server
 }
 
-func (handler *HTTPHandler) Listen(address string) error {
+func (server *WebServer) ListenAndServe(address string) error {
 	addr, err := net.ResolveTCPAddr("tcp", address)
 	if err != nil {
 		return hierr.Errorf(
-			err, "can't resolve %s", address,
+			err, "can't resolve '%s'", address,
 		)
 	}
-
-	handler.logger.Debugf("opening connection at %s", address)
 
 	listener, err := net.ListenTCP("tcp", addr)
 	if err != nil {
 		return hierr.Errorf(
 			err,
-			"can't listen at %s", addr,
+			"can't listen '%s'", addr,
 		)
 	}
 
-	handler.logger.Infof("listening at %s", address)
+	server.logger.Infof("listening at %s", address)
 
-	return http.Serve(listener, handler)
+	return http.Serve(listener, server.mux)
 }
 
-func (handler *HTTPHandler) ServeHTTP(
-	response http.ResponseWriter, request *http.Request,
+func (server *WebServer) Handle(
+	writer http.ResponseWriter, request *http.Request,
 ) {
 	var (
-		requestID = atomic.AddInt64(&handler.handled, 1)
-		logger    = coreLogger.NewChildWithPrefix(
-			fmt.Sprintf("[request#%d]", requestID),
-		)
+		number = atomic.AddInt64(&server.requests, 1)
+		logger = getLogger("request#%d", number)
 	)
-
-	handler.logger.Debugf("request #%d handled", requestID)
-	defer func() {
-		handler.logger.Debugf("request #%d released", requestID)
-	}()
 
 	logger.Infof(
 		"-> %s %s",
-		request.Method, request.URL.String(),
+		request.Method, request.URL,
 	)
 
-	data, status := handler.handle(
-		logger, request, request.URL.Path,
+	status, response := server.route(
+		logger, request,
 	)
-
-	response.WriteHeader(status)
-
-	if data != nil {
-		if _, ok := data.(error); ok {
-			data = map[string]interface{}{"error": data}
-		}
-
-		err := json.NewEncoder(response).Encode(data)
-		if err != nil {
-			logger.Error(err)
-		}
-	}
 
 	logger.Infof(
 		"<- %d %s",
 		status, http.StatusText(status),
 	)
+
+	writer.WriteHeader(status)
+
+	if response != nil {
+		if err, ok := response.(error); ok {
+			response = map[string]interface{}{"error": err}
+		}
+
+		err := json.NewEncoder(writer).Encode(response)
+		if err != nil {
+			logger.Error(err)
+		}
+	}
 }
 
-func (handler *HTTPHandler) handle(
+func (server *WebServer) route(
 	logger *lorg.Log,
 	request *http.Request,
-	requestURL string,
-) (interface{}, int) {
+) (status int, response interface{}) {
+	requestURL := "/" + strings.TrimPrefix(request.URL.Path, prefixAPI)
+
 	switch {
-	case strings.HasPrefix(requestURL, "/x/"):
-		return handler.handleNewTask(
-			logger,
-			strings.TrimPrefix(requestURL, "/x/"),
-		)
+	case requestURL == "/tasks/":
+		switch request.Method {
+		case "POST":
+			return server.handleNewTask(logger, request)
 
-	case requestURL == "/task/":
-		return handler.handleTaskList(logger)
+		case "GET":
+			return server.handleListTasks(logger)
 
-	case strings.HasPrefix(requestURL, "/task/"):
-		return handler.handleTaskStatus(
+		default:
+			return http.StatusMethodNotAllowed, nil
+		}
+
+	case strings.HasPrefix(requestURL, "/tasks/"):
+		return server.handleTaskStatus(
 			logger,
-			strings.TrimPrefix(requestURL, "/task/"),
+			strings.TrimPrefix(requestURL, "/tasks/"),
 		)
 
 	default:
-		return nil, http.StatusNotAcceptable
+		return http.StatusNotFound, nil
 	}
 }
 
-func (handler *HTTPHandler) handleNewTask(
+func (server *WebServer) handleNewTask(
 	logger *lorg.Log,
-	requestURL string,
-) (interface{}, int) {
+	request *http.Request,
+) (status int, response interface{}) {
+	err := request.ParseForm()
+	if err != nil {
+		logger.Error(err)
+		return http.StatusNotFound, nil
+	}
+
 	task, err := NewTaskStashPullRequest(
-		strings.TrimPrefix(requestURL, "/x/"),
+		request.PostForm.Get("url"),
 	)
 	if err != nil {
 		logger.Error(err)
-		return err, http.StatusBadRequest
+		return http.StatusBadRequest, err
 	}
 
-	taskID := handler.resources.queue.Push(task)
+	taskID := server.resources.queue.Push(task)
 
-	return ResponseTaskQueued{
-		ID: taskID,
-	}, http.StatusOK
+	return http.StatusOK, ResponseTaskQueued{ID: taskID}
 }
 
-func (handler *HTTPHandler) handleTaskStatus(
+func (server *WebServer) handleTaskStatus(
 	logger *lorg.Log,
 	requestURL string,
-) (interface{}, int) {
+) (status int, response interface{}) {
 	taskID, err := strconv.Atoi(
 		strings.Trim(strings.TrimPrefix(requestURL, "/task/"), "/"),
 	)
 	if err != nil {
-		return err, http.StatusBadRequest
+		return http.StatusBadRequest, err
 	}
 
-	if taskID > len(handler.resources.queue.tasks) || taskID < 1 {
-		return nil, http.StatusNotFound
+	if taskID > len(server.resources.queue.tasks) || taskID < 1 {
+		return http.StatusNotFound, nil
 	}
 
-	task := handler.resources.queue.tasks[taskID-1]
+	task := server.resources.queue.tasks[taskID-1]
 
-	return ResponseTask{
+	return http.StatusOK, ResponseTask{
 		ID:    task.GetID(),
 		State: task.GetState().String(),
-		Title: task.GetTitle(), 
+		Title: task.GetTitle(),
 		Logs: strings.Split(
 			strings.TrimSuffix(task.GetBuffer().String(), "\n"),
 			"\n",
 		),
-	}, http.StatusOK
+	}
 }
 
-func (handler *HTTPHandler) handleTaskList(
+func (server *WebServer) handleListTasks(
 	logger *lorg.Log,
-) (interface{}, int) {
-	response := ResponseTaskList{}
-	for i := len(handler.resources.queue.tasks) - 1; i >=  0; i-- {
-		task  := handler.resources.queue.tasks[i]
+) (status int, response interface{}) {
+	tasksList := ResponseTaskList{
+		Tasks: make([]ResponseTask, len(server.resources.queue.tasks)),
+	}
 
-		response.Tasks = append(
-			response.Tasks,
+	for i := len(server.resources.queue.tasks) - 1; i >= 0; i-- {
+		task := server.resources.queue.tasks[i]
+
+		tasksList.Tasks = append(
+			tasksList.Tasks,
 			ResponseTask{
-				ID: task.GetID(),
+				ID:    task.GetID(),
 				State: task.GetState().String(),
 				Title: task.GetTitle(),
 			},
 		)
 	}
 
-	return response, http.StatusOK
+	return http.StatusOK, tasksList
 }

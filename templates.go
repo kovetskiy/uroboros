@@ -5,27 +5,32 @@ import (
 )
 
 var (
-	TemplateMarkdownBuildPassing = template.Must(
-		template.New(``).Parse(
-			`# [![build passing](` +
-				`https://img.shields.io/badge/build-passing-brightgreen.svg` +
-				`)](http://uroboro.s/task/{{ .taskID }})
+	TemplateBadgeBuildPassing = template.Must(template.New("").Parse(
+		"# [![uroboros: build passing](" +
+			"{{ .basic_url }}/badges/build-passing.svg" +
+			")]({{ .basic_url }}/task/{{ .taskID }})",
+	))
 
-` + "```" + `
-{{ .logs }}
-` + "```" + `
+	TemplateBadgeBuildFailure = template.Must(template.New("").Parse(
+		"# [![uroboros: build failure](" +
+			"{{ .basic_url }}/badges/build-failure.svg" +
+			")]({{ .basic_url }}/task/{{ .taskID }})",
+	))
 
-`))
+)
 
-	TemplateMarkdownBuildFailure = template.Must(
-		template.New(``).Parse(
-			`# [![build failure](` +
-				`https://img.shields.io/badge/build-failure-red.svg` +
-				`)](http://uroboro.s/task/{{ .taskID }})
+var (
+	TemplateCommentBuildPassing = template.Must(template.New("").Parse(
+		"# [![uroboros: build passing](" +
+			"{{ .basic_url }}/badges/build-passing.svg" +
+			")]({{ .basic_url }}/task/{{ .taskID }})" +
+			"```{{ .logs }}```",
+	))
 
-` + "```" + `
-{{ .errors }}
-` + "```" + `
-
-`))
+	TemplateCommentBuildFailure = template.Must(template.New("").Parse(
+		"# [![uroboros: build failure](" +
+			"{{ .basic_url }}/badges/build-failure.svg" +
+			")]({{ .basic_url }}/task/{{ .taskID }})" +
+			"```{{ .errors }}```",
+	))
 )

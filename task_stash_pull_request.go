@@ -46,4 +46,3 @@ func (request *TaskStashPullRequest) GetTitle() string {
 		request.Identifier, 
 	)
 }
-

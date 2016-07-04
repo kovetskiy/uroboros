@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/kovetskiy/godocs"
 	"github.com/kovetskiy/lorg"
+	"github.com/reconquest/colorgful"
 	"github.com/seletskiy/hierr"
 )
 
@@ -14,21 +15,21 @@ var (
 @TODO
 
 Usage:
-	uroboros [options]
+    uroboros [options]
 
 Options:
-    -h --help           Show this help.
     -c --config <path>  Specify configuration file.
                          [default: /etc/uroboros/uroboros.conf]
     --debug             Debug mode.
     --trace             Trace mode.
+    -h --help           Show this help.
 `
 )
 
 var (
-	coreLogger = getLogger()
-	debugMode  = false
-	traceMode  = false
+	globalLogger = lorg.NewLog()
+	debugMode    = false
+	traceMode    = false
 )
 
 func main() {
@@ -37,25 +38,24 @@ func main() {
 		fatalln(err)
 	}
 
+	globalLogger.SetFormat(
+		colorgful.MustApplyDefaultTheme(
+			"${time} ${level:[%s]:right:short} ${prefix}%s",
+			colorgful.Dark,
+		),
+	)
+
 	debugMode = args["--debug"].(bool)
 	if debugMode {
-		coreLogger.SetLevel(lorg.LevelDebug)
+		globalLogger.SetLevel(lorg.LevelDebug)
 	}
 
 	traceMode = args["--trace"].(bool)
 	if traceMode {
-		coreLogger.SetLevel(lorg.LevelTrace)
+		globalLogger.SetLevel(lorg.LevelTrace)
 	}
 
-	config, err := getConfig(args["--config"].(string))
-	if err != nil {
-		hierr.Fatalf(
-			err,
-			"can't configure uroboros server",
-		)
-	}
-
-	resources, err := GetResources(coreLogger, config)
+	resources, err := GetResources(args["--config"].(string))
 	if err != nil {
 		hierr.Fatalf(
 			err,
@@ -64,19 +64,13 @@ func main() {
 	}
 
 	var (
-		scheduler = NewScheduler(
-			coreLogger.NewChildWithPrefix("[scheduler]"), resources,
-		)
-
-		handler = NewHTTPHandler(
-			coreLogger.NewChildWithPrefix("[handler]"),
-			resources,
-		)
+		scheduler = NewScheduler(getLogger("scheduler"), resources)
+		server    = NewWebServer(getLogger("server"), resources)
 	)
 
-	scheduler.Schedule(config.Tasks.Threads)
+	scheduler.Schedule(resources.config.Tasks.Threads)
 
-	if err = handler.Listen(config.HTTP.Address); err != nil {
+	if err = server.ListenAndServe(resources.config.Web.Listen); err != nil {
 		hierr.Fatalf(
 			err,
 			"can't serve http connections",

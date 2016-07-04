@@ -10,13 +10,13 @@ import (
 
 type Scheduler struct {
 	logger    *lorg.Log
-	resources *Resources
+	resources *resources
 	scheduled int64
 }
 
 func NewScheduler(
 	logger *lorg.Log,
-	resources *Resources,
+	resources *resources,
 ) *Scheduler {
 	return &Scheduler{
 		logger:    logger,

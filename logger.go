@@ -6,20 +6,10 @@ import (
 
 	"github.com/kovetskiy/lorg"
 	"github.com/kovetskiy/spinner-go"
-	"github.com/reconquest/colorgful"
 )
 
-func getLogger() *lorg.Log {
-	logger := lorg.NewLog()
-
-	logger.SetFormat(
-		colorgful.MustApplyDefaultTheme(
-			"${time} ${level:[%s]:right:short} ${prefix}%s",
-			colorgful.Dark,
-		),
-	)
-
-	return logger
+func getLogger(format string, arg ...interface{}) *lorg.Log {
+	return globalLogger.NewChildWithPrefix(fmt.Sprintf(format, arg...))
 }
 
 func fatalf(format string, values ...interface{}) {
@@ -36,11 +26,11 @@ func fatalln(value interface{}) {
 }
 
 func debugf(format string, values ...interface{}) {
-	coreLogger.Debugf(format, values...)
+	globalLogger.Debugf(format, values...)
 }
 
 func tracef(format string, values ...interface{}) {
-	coreLogger.Tracef(format, values...)
+	globalLogger.Tracef(format, values...)
 }
 
 func debugln(value interface{}) {

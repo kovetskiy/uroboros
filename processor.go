@@ -8,13 +8,13 @@ import (
 )
 
 type Processor interface {
-	SetResources(*Resources)
+	SetResources(*resources)
 	SetLogger(*lorg.Log)
 	Process()
 }
 
 type processor struct {
-	resources *Resources
+	resources *resources
 	logger    *lorg.Log
 }
 
@@ -27,7 +27,7 @@ func NewProcessor(task Task) Processor {
 	panic("unexpected task")
 }
 
-func (processor *processor) SetResources(resources *Resources) {
+func (processor *processor) SetResources(resources *resources) {
 	processor.resources = resources
 }
 

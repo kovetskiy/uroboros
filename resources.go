@@ -5,18 +5,44 @@ import (
 	"log"
 	"net/url"
 
-	"github.com/kovetskiy/lorg"
+	"github.com/kovetskiy/ko"
 	"github.com/kovetskiy/stash"
 	"github.com/seletskiy/hierr"
 )
 
-type Resources struct {
-	stash stash.Stash
-	queue *Queue
+type config struct {
+	Web struct {
+		Listen string `required:"true"`
+		BasicURL string `toml:"basic_url" required:"true"`
+	} `toml:"web" required:"true"`
+
+	Tasks struct {
+		Threads int `required:"true"`
+	} `required:"true"`
+
+	Resources struct {
+		Stash struct {
+			Address  string `required:"true"`
+			Username string `required:"true"`
+			Password string `required:"true"`
+		} `required:"true"`
+		Linters map[string]string `required:"true"`
+	} `required:"true"`
+}
+
+type resources struct {
+	config  *config
+	stash   stash.Stash
+	queue   *Queue
 	linters map[string]string
 }
 
-func GetResources(logger *lorg.Log, config *config) (*Resources, error) {
+func GetResources(path string) (*resources, error) {
+	var config config
+	if err := ko.Load(path, &config); err != nil {
+		return nil, err
+	}
+
 	stash.Log = log.New(ioutil.Discard, "", 0)
 
 	stashURL, err := url.Parse(config.Resources.Stash.Address)
@@ -27,19 +53,14 @@ func GetResources(logger *lorg.Log, config *config) (*Resources, error) {
 		)
 	}
 
-	stashClient := stash.NewClient(
-		config.Resources.Stash.Username,
-		config.Resources.Stash.Password,
-		stashURL,
-	)
-
-	queue := NewQueue(logger.NewChildWithPrefix("[queue]"))
-
-	resources := &Resources{
-		stash: stashClient,
-		queue: queue,
-		linters: config.Resources.Linters, 
-	}
-
-	return resources, nil
+	return &resources{
+		stash: stash.NewClient(
+			config.Resources.Stash.Username,
+			config.Resources.Stash.Password,
+			stashURL,
+		),
+		queue:   NewQueue(getLogger("queue")),
+		linters: config.Resources.Linters,
+		config:  &config,
+	}, nil
 }

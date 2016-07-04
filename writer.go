@@ -25,7 +25,7 @@ func (writer unprefixed) Write(data []byte) (int, error) {
 	return writer.writer.Write(
 		reLogPrefix.ReplaceAll(
 			data,
-			[]byte(`$1 $2`),
+			[]byte(`$2`),
 		),
 	)
 }

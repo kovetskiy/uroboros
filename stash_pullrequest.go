@@ -18,6 +18,7 @@ import (
 
 type ProcessorStashPullRequest struct {
 	processor
+
 	task        *TaskStashPullRequest
 	pullRequest stash.PullRequest
 	gopath      string
@@ -41,13 +42,13 @@ func (processor *ProcessorStashPullRequest) Process() {
 	if err != nil {
 		processor.logger.Error(err)
 		processor.task.SetState(TaskStateError)
-		processor.comment(TemplateMarkdownBuildFailure)
+		processor.comment(TemplateCommentBuildFailure)
 		return
 	}
 
 	processor.logger.Infof(":: build passing")
 	processor.task.SetState(TaskStateSuccess)
-	processor.comment(TemplateMarkdownBuildPassing)
+	processor.comment(TemplateCommentBuildPassing)
 }
 
 func (processor *ProcessorStashPullRequest) process() error {
@@ -102,9 +103,10 @@ func (processor *ProcessorStashPullRequest) comment(
 	template *template.Template,
 ) {
 	text, err := tplutil.ExecuteToString(template, map[string]interface{}{
-		"taskID": processor.task.GetID(),
-		"logs":   processor.task.GetBuffer().String(),
-		"errors": processor.task.GetErrorBuffer().String(),
+		"taskID":    processor.task.GetID(),
+		"logs":      processor.task.GetBuffer().String(),
+		"errors":    processor.task.GetErrorBuffer().String(),
+		"basic_url": processor.resources.config.Web.BasicURL,
 	})
 	if err != nil {
 		processor.logger.Error(err)
@@ -304,16 +306,13 @@ func (processor *ProcessorStashPullRequest) fetch() error {
 		":: cloning repository %s", cloneURL,
 	)
 
-	gopath, sources, err := processor.prepareSources(cloneURL, branch)
+	err = processor.prepareSources(cloneURL, branch)
 	if err != nil {
 		return hierr.Errorf(
 			err,
 			"can't clone repository %s", cloneURL,
 		)
 	}
-
-	processor.gopath = gopath
-	processor.sources = sources
 
 	processor.logger.Infof(
 		":: fetching project's dependencies",
@@ -371,11 +370,11 @@ func (processor *ProcessorStashPullRequest) getCloneURL() (string, error) {
 }
 
 func (processor *ProcessorStashPullRequest) prepareSources(
-	url string, branch string,
-) (string, string, error) {
+	url, branch string,
+) error {
 	gopath, err := ioutil.TempDir(os.TempDir(), "uroboros_")
 	if err != nil {
-		return "", "", hierr.Errorf(
+		return hierr.Errorf(
 			err, "can't create temporary directory",
 		)
 	}
@@ -387,8 +386,11 @@ func (processor *ProcessorStashPullRequest) prepareSources(
 
 	_, err = processor.spawn("git", "clone", url, sources)
 	if err != nil {
-		return "", "", err
+		return err
 	}
+
+	processor.gopath = gopath
+	processor.sources = sources
 
 	processor.logger.Infof(
 		":: switching to branch %s", branch,
@@ -396,10 +398,10 @@ func (processor *ProcessorStashPullRequest) prepareSources(
 
 	_, err = processor.spawn("git", "checkout", branch)
 	if err != nil {
-		return "", "", err
+		return err
 	}
 
-	return gopath, sources, err
+	return nil
 }
 
 func (processor *ProcessorStashPullRequest) goget() (string, error) {
