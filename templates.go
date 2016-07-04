@@ -16,7 +16,6 @@ var (
 			"{{ .basic_url }}/badges/build-failure.svg" +
 			")]({{ .basic_url }}/task/{{ .taskID }})",
 	))
-
 )
 
 var (

@@ -44,7 +44,7 @@ func NewWebServer(
 	return server
 }
 
-func (server *WebServer) ListenAndServe(address string) error {
+func (server *WebServer) Serve(address string) error {
 	addr, err := net.ResolveTCPAddr("tcp", address)
 	if err != nil {
 		return hierr.Errorf(

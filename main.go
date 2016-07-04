@@ -10,7 +10,7 @@ import (
 var (
 	version = "1.0"
 	usage   = `uroboros ` + version +
-		` - the continious integration snake which will gobble u and ur code
+		` - the continious integration snake that will gobble your projects
 
 @TODO
 
@@ -65,12 +65,12 @@ func main() {
 
 	var (
 		scheduler = NewScheduler(getLogger("scheduler"), resources)
-		server    = NewWebServer(getLogger("server"), resources)
+		webserver = NewWebServer(getLogger("server"), resources)
 	)
 
 	scheduler.Schedule(resources.config.Tasks.Threads)
 
-	if err = server.ListenAndServe(resources.config.Web.Listen); err != nil {
+	if err = webserver.Serve(resources.config.Web.Listen); err != nil {
 		hierr.Fatalf(
 			err,
 			"can't serve http connections",

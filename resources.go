@@ -49,7 +49,7 @@ func GetResources(path string) (*resources, error) {
 	if err != nil {
 		return nil, hierr.Errorf(
 			err,
-			"can't parse stash address",
+			"can't parse Stash address",
 		)
 	}
 
