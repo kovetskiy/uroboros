@@ -1,12 +1,3 @@
-[submodule "tests/vendor/github.com/reconquest/test-runner.bash"]
-	path = tests/vendor/github.com/reconquest/test-runner.bash
-	url = https://github.com/reconquest/test-runner.bash
 [submodule "tests/vendor/github.com/reconquest/import.bash"]
 	path = tests/vendor/github.com/reconquest/import.bash
 	url = https://github.com/reconquest/import.bash
-[submodule "tests/lib"]
-	path = tests/lib
-	url = https://github.com/reconquest/tests.sh
-[submodule "tests/vendor/github.com/reconquest/blank.bash"]
-	path = tests/vendor/github.com/reconquest/blank.bash
-	url = https://github.com/reconquest/blank.bash
