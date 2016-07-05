@@ -1,7 +1,7 @@
 package main
 
 type ResponseTaskQueued struct {
-	ID int64
+	ID int64 `json:"id"`
 }
 
 type ResponseTask struct {
