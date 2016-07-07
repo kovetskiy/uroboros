@@ -9,13 +9,13 @@ import (
 )
 
 const (
-	pathStatic = "/static/"
-	pathAPI    = "/api/v1/"
-	pathBadge  = "/badge/"
-	pathStatus = "/status/"
-	pathStaticBadges = "/static/badges/"
-	pathStaticBadgeBuildPassing = "/static/badges/build-passing.svg"
-	pathStaticBadgeBuildFailure = "/static/badges/build-failure.svg"
+	pathStatic                     = "/static/"
+	pathAPI                        = "/api/v1/"
+	pathBadge                      = "/badge/"
+	pathStatus                     = "/status/"
+	pathStaticBadges               = "/static/badges/"
+	pathStaticBadgeBuildPassing    = "/static/badges/build-passing.svg"
+	pathStaticBadgeBuildFailure    = "/static/badges/build-failure.svg"
 	pathStaticBadgeBuildProcessing = "/static/badges/build-processing.svg"
 )
 

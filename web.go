@@ -105,10 +105,10 @@ func (server *WebServer) handleBadge(
 	switch task.GetState() {
 	case TaskStateSuccess:
 		path = pathStaticBadgeBuildPassing
-	
+
 	case TaskStateError:
 		path = pathStaticBadgeBuildFailure
-	
+
 	default:
 		path = pathStaticBadgeBuildProcessing
 	}

@@ -9,7 +9,7 @@ import (
 
 var (
 	reLogPrefix = regexp.MustCompile(
-		`^([\d-]+\s+[\d:]+)\s+\[\w+\]\s+\[[\w\#\d]+\] (.*)`, 
+		`^([\d-]+\s+[\d:]+)\s+\[\w+\]\s+\[[\w\#\d]+\] (.*)`,
 	)
 )
 

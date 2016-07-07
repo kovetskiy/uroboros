@@ -38,7 +38,6 @@ func NewProcessorStashPullRequest(
 func (processor *ProcessorStashPullRequest) Process() {
 	processor.task.SetState(TaskStateProcessing)
 
-
 	processor.logger.Infof(
 		":: retrieving information about pull request",
 	)
@@ -55,7 +54,7 @@ func (processor *ProcessorStashPullRequest) Process() {
 			"can't obtain information about specified pull request",
 		))
 		processor.task.SetState(TaskStateError)
-		return 
+		return
 	}
 
 	err = processor.process()
@@ -129,7 +128,7 @@ func (processor *ProcessorStashPullRequest) ensureBadge() error {
 		TemplateBadge,
 		map[string]interface{}{
 			"basic_url": processor.resources.config.Web.BasicURL,
-			"slug": processor.task.GetIdentifier(),
+			"slug":      processor.task.GetIdentifier(),
 		},
 	)
 	if err != nil {
@@ -176,7 +175,7 @@ func (processor *ProcessorStashPullRequest) comment(
 	template *template.Template,
 ) {
 	text, err := tplutil.ExecuteToString(template, map[string]interface{}{
-		"taskID":    processor.task.GetUniqueID(),
+		"id":        processor.task.GetUniqueID(),
 		"logs":      processor.task.GetBuffer().String(),
 		"errors":    processor.task.GetErrorBuffer().String(),
 		"basic_url": processor.resources.config.Web.BasicURL,

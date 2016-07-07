@@ -45,6 +45,5 @@ func (processor *processor) execute(
 
 	processor.logger.Debugf("exec %q at %s", command.Args, dir)
 
-	return  executil.Run(command)
+	return executil.Run(command)
 }
-

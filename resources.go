@@ -12,7 +12,7 @@ import (
 
 type config struct {
 	Web struct {
-		Listen string `required:"true"`
+		Listen   string `required:"true"`
 		BasicURL string `toml:"basic_url" required:"true"`
 	} `toml:"web" required:"true"`
 

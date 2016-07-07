@@ -17,13 +17,13 @@ var (
 		"# [![uroboros: build passing](" +
 			"{{ .basic_url }}" + pathStaticBadgeBuildPassing +
 			")]({{ .basic_url }}/status/{{ .id }})" +
-			"\n```{{ .logs }}```",
+			"\n```\n{{ .logs }}\n```",
 	))
 
 	TemplateCommentBuildFailure = template.Must(template.New("").Parse(
 		"# [![uroboros: build failure](" +
 			"{{ .basic_url }}" + pathStaticBadgeBuildFailure +
 			")]({{ .basic_url }}/status/{{ .id }})" +
-			"\n```{{ .errors }}```",
+			"\n```\n{{ .errors }}\n```",
 	))
 )

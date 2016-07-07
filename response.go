@@ -5,11 +5,11 @@ type ResponseTaskQueued struct {
 }
 
 type ResponseTask struct {
-	UniqueID    int64 `json:"unique_id"`
-	Identifier string `json:"identifier"`
-	State string   `json:"state"`
-	Title string   `json:"title"`
-	Logs  []string `json:"logs,omitempty"`
+	UniqueID   int64    `json:"unique_id"`
+	Identifier string   `json:"identifier"`
+	State      string   `json:"state"`
+	Title      string   `json:"title"`
+	Logs       []string `json:"logs,omitempty"`
 }
 
 type ResponseTaskList struct {
