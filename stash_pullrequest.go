@@ -209,7 +209,7 @@ func (processor *ProcessorStashPullRequest) comment(
 func (processor *ProcessorStashPullRequest) lint() error {
 	for linter, cmd := range processor.resources.linters {
 		processor.logger.Infof(
-			":: lintering source code using %s",
+			":: linting source code using %s",
 			linter,
 		)
 
@@ -232,7 +232,7 @@ func (processor *ProcessorStashPullRequest) lint() error {
 
 			return hierr.Errorf(
 				err,
-				"an error occurred while lintering source code",
+				"an error occurred while linting source code",
 			)
 		}
 	}
