@@ -38,7 +38,27 @@ func NewProcessorStashPullRequest(
 func (processor *ProcessorStashPullRequest) Process() {
 	processor.task.SetState(TaskStateProcessing)
 
-	err := processor.process()
+
+	processor.logger.Infof(
+		":: retrieving information about pull request",
+	)
+
+	var err error
+	processor.pullRequest, err = processor.resources.stash.GetPullRequest(
+		processor.task.Project,
+		processor.task.Repository,
+		processor.task.Identifier,
+	)
+	if err != nil {
+		processor.logger.Error(hierr.Errorf(
+			err,
+			"can't obtain information about specified pull request",
+		))
+		processor.task.SetState(TaskStateError)
+		return 
+	}
+
+	err = processor.process()
 	if err != nil {
 		processor.logger.Error(err)
 		processor.task.SetState(TaskStateError)
@@ -65,7 +85,12 @@ func (processor *ProcessorStashPullRequest) process() error {
 		}
 	}()
 
-	err := processor.fetch()
+	err := processor.ensureBadge()
+	if err != nil {
+		return err
+	}
+
+	err = processor.fetch()
 	if err != nil {
 		return err
 	}
@@ -99,20 +124,69 @@ func (processor *ProcessorStashPullRequest) process() error {
 	return nil
 }
 
+func (processor *ProcessorStashPullRequest) ensureBadge() error {
+	badge, err := tplutil.ExecuteToString(
+		TemplateBadge,
+		map[string]interface{}{
+			"basic_url": processor.resources.config.Web.BasicURL,
+			"slug": processor.task.GetIdentifier(),
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	if strings.Contains(processor.pullRequest.Description, badge) {
+		processor.logger.Debugf(
+			"no need to edit pull request, badge already added",
+		)
+		return nil
+	}
+
+	processor.logger.Debugf(
+		"updating pull request, adding badge to description",
+	)
+
+	description := badge + "\n" + processor.pullRequest.Description
+
+	reviewers := []string{}
+	for _, reviewer := range processor.pullRequest.Reviewers {
+		reviewers = append(reviewers, reviewer.User.Name)
+	}
+
+	_, err = processor.resources.stash.UpdatePullRequest(
+		processor.task.Project,
+		processor.task.Repository,
+		processor.task.Identifier,
+		processor.pullRequest.Version,
+		processor.pullRequest.Title, description, "", reviewers,
+	)
+
+	if err != nil {
+		return hierr.Errorf(
+			err,
+			"can't add badge to pull request description",
+		)
+	}
+
+	return nil
+}
+
 func (processor *ProcessorStashPullRequest) comment(
 	template *template.Template,
 ) {
 	text, err := tplutil.ExecuteToString(template, map[string]interface{}{
-		"taskID":    processor.task.GetID(),
+		"taskID":    processor.task.GetUniqueID(),
 		"logs":      processor.task.GetBuffer().String(),
 		"errors":    processor.task.GetErrorBuffer().String(),
 		"basic_url": processor.resources.config.Web.BasicURL,
 	})
 	if err != nil {
 		processor.logger.Error(err)
+		return
 	}
 
-	processor.logger.Debugf("creating comment to pull-request")
+	processor.logger.Debugf("creating comment to pull request")
 
 	comment, err := processor.resources.stash.CreateComment(
 		processor.task.Project,
@@ -124,9 +198,10 @@ func (processor *ProcessorStashPullRequest) comment(
 		processor.logger.Error(
 			hierr.Errorf(
 				err,
-				"can't create comment in pull-request",
+				"can't create comment in pull request",
 			),
 		)
+		return
 	}
 
 	processor.logger.Debugf("comment #%v created", comment.ID)
@@ -271,23 +346,6 @@ func (processor *ProcessorStashPullRequest) lookupMakefileTargets() error {
 }
 
 func (processor *ProcessorStashPullRequest) fetch() error {
-	processor.logger.Infof(
-		":: retrieving information about pull-request",
-	)
-
-	var err error
-	processor.pullRequest, err = processor.resources.stash.GetPullRequest(
-		processor.task.Project,
-		processor.task.Repository,
-		processor.task.Identifier,
-	)
-	if err != nil {
-		return hierr.Errorf(
-			err,
-			"can't obtain information about specified pull-request",
-		)
-	}
-
 	var branch = processor.pullRequest.FromRef.DisplayID
 
 	processor.logger.Infof(

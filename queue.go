@@ -29,7 +29,7 @@ func NewQueue(logger *lorg.Log) *Queue {
 func (queue *Queue) Push(task Task) int64 {
 	uniqueID := atomic.AddInt64(&queue.queued, 1)
 
-	task.SetID(uniqueID)
+	task.SetUniqueID(uniqueID)
 	task.SetState(TaskStateQueued)
 
 	queue.mutex.Lock()
@@ -42,7 +42,7 @@ func (queue *Queue) Push(task Task) int64 {
 
 	queue.logger.Debugf(
 		"[%d/%d] push #%d",
-		queue.poped, queue.queued, task.GetID(),
+		queue.poped, queue.queued, task.GetUniqueID(),
 	)
 
 	return uniqueID
@@ -54,8 +54,26 @@ func (queue *Queue) Pop() Task {
 
 	queue.logger.Debugf(
 		"[%d/%d] pop #%d",
-		queue.poped, queue.queued, task.GetID(),
+		queue.poped, queue.queued, task.GetUniqueID(),
 	)
 
 	return task
+}
+
+func (queue *Queue) GetTaskByIdentifier(identifier string) Task {
+	for i := len(queue.tasks) - 1; i >= 0; i-- {
+		if queue.tasks[i].GetIdentifier() == identifier {
+			return queue.tasks[i]
+		}
+	}
+
+	return nil
+}
+
+func (queue *Queue) GetTaskByUniqueID(id int) Task {
+	if id <= len(queue.tasks) && id >= 1 {
+		return queue.tasks[id-1]
+	}
+
+	return nil
 }

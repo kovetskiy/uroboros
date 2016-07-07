@@ -14,7 +14,6 @@ var (
 	TaskStateSuccess    TaskState = 40
 )
 
-
 func (state TaskState) String() string {
 	switch state {
 	case TaskStateQueued:
@@ -30,31 +29,35 @@ func (state TaskState) String() string {
 	}
 }
 
-
-
 type Task interface {
-	GetID() int64
-	SetID(int64)
+	GetUniqueID() int64
+	SetUniqueID(int64)
 	GetState() TaskState
 	SetState(TaskState)
 	GetBuffer() *bytes.Buffer
 	GetErrorBuffer() *bytes.Buffer
 	GetTitle() string
+	GetIdentifier() string
 }
 
 type task struct {
-	id     int64
-	state  TaskState
-	buffer *bytes.Buffer
+	unique      int64
+	identifier  string
+	state       TaskState
+	buffer      *bytes.Buffer
 	errorBuffer *bytes.Buffer
 }
 
-func (task *task) GetID() int64 {
-	return task.id
+func (task *task) GetUniqueID() int64 {
+	return task.unique
 }
 
-func (task *task) SetID(id int64) {
-	task.id = id
+func (task *task) SetUniqueID(id int64) {
+	task.unique = id
+}
+
+func (task *task) GetIdentifier() string {
+	return task.identifier
 }
 
 func (task *task) GetState() TaskState {
@@ -72,7 +75,6 @@ func (task *task) GetBuffer() *bytes.Buffer {
 
 	return task.buffer
 }
-
 
 func (task *task) GetErrorBuffer() *bytes.Buffer {
 	if task.errorBuffer == nil {

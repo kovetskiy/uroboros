@@ -5,31 +5,25 @@ import (
 )
 
 var (
-	TemplateBadgeBuildPassing = template.Must(template.New("").Parse(
-		"# [![uroboros: build passing](" +
-			"{{ .basic_url }}/badges/build-passing.svg" +
-			")]({{ .basic_url }}/task/{{ .taskID }})",
-	))
-
-	TemplateBadgeBuildFailure = template.Must(template.New("").Parse(
-		"# [![uroboros: build failure](" +
-			"{{ .basic_url }}/badges/build-failure.svg" +
-			")]({{ .basic_url }}/task/{{ .taskID }})",
+	TemplateBadge = template.Must(template.New("").Parse(
+		"# [![uroboros: build status](" +
+			"{{ .basic_url }}/badge/{{ .slug }}" +
+			")]({{ .basic_url }}/status/{{ .slug }})",
 	))
 )
 
 var (
 	TemplateCommentBuildPassing = template.Must(template.New("").Parse(
 		"# [![uroboros: build passing](" +
-			"{{ .basic_url }}/badges/build-passing.svg" +
-			")]({{ .basic_url }}/task/{{ .taskID }})" +
-			"```{{ .logs }}```",
+			"{{ .basic_url }}" + pathStaticBadgeBuildPassing +
+			")]({{ .basic_url }}/status/{{ .id }})" +
+			"\n```{{ .logs }}```",
 	))
 
 	TemplateCommentBuildFailure = template.Must(template.New("").Parse(
 		"# [![uroboros: build failure](" +
-			"{{ .basic_url }}/badges/build-failure.svg" +
-			")]({{ .basic_url }}/task/{{ .taskID }})" +
-			"```{{ .errors }}```",
+			"{{ .basic_url }}" + pathStaticBadgeBuildFailure +
+			")]({{ .basic_url }}/status/{{ .id }})" +
+			"\n```{{ .errors }}```",
 	))
 )

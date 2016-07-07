@@ -41,11 +41,11 @@ func (scheduler *Scheduler) schedule() {
 func (scheduler *Scheduler) serve(task Task) {
 	atomic.AddInt64(&scheduler.scheduled, 1)
 
-	scheduler.logger.Infof("serving task#%d", task.GetID())
+	scheduler.logger.Infof("serving task#%d", task.GetUniqueID())
 	scheduler.logger.Tracef("%#v", task)
 
 	logger := scheduler.logger.NewChildWithPrefix(
-		fmt.Sprintf("[task#%d]", task.GetID()),
+		fmt.Sprintf("[task#%d]", task.GetUniqueID()),
 	)
 
 	logger.SetOutput(
