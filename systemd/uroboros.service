@@ -1,0 +1,10 @@
+[Unit]
+Description=continious integration snake
+
+[Service]
+ExecStart=/usr/bin/uroboros
+ExecReload=/usr/bin/kill -HUP $MAINPID
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

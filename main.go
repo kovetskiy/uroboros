@@ -12,8 +12,6 @@ var (
 	usage   = `uroboros ` + version +
 		` - the continious integration snake that will gobble your projects
 
-@TODO
-
 Usage:
     uroboros [options]
 
