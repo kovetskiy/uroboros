@@ -76,4 +76,7 @@ package() {
     install -DT \
         "$srcdir/$pkgname/uroboros.conf" \
         "$pkgdir/etc/uroboros/uroboros.conf"
+
+    mkdir -p "$pkgdir/srv/http/"
+    cp -r "$srcdir/$pkgname/static/" "$pkgdir/srv/http/"
 }
