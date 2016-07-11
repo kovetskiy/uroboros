@@ -3,7 +3,7 @@ Description=continious integration snake
 
 [Service]
 WorkingDirectory=/srv/http/
-ExecStart=/usr/bin/uroboros
+ExecStart=/usr/bin/uroboros --debug
 ExecReload=/usr/bin/kill -HUP $MAINPID
 Restart=always
 
