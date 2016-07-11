@@ -441,7 +441,7 @@ func (processor *ProcessorStashPullRequest) prepareSources(
 		processor.task.Host, processor.task.Project, processor.task.Repository,
 	)
 
-	_, err = processor.spawn("git", "clone", "--recursive",  url, sources)
+	_, err = processor.spawn("git", "clone", url, sources)
 	if err != nil {
 		return err
 	}
@@ -454,6 +454,13 @@ func (processor *ProcessorStashPullRequest) prepareSources(
 	)
 
 	_, err = processor.spawn("git", "checkout", branch)
+	if err != nil {
+		return err
+	}
+
+	_, err = processor.spawn(
+		"git", "submodule", "update", "--recursive", "--init",
+	)
 	if err != nil {
 		return err
 	}
