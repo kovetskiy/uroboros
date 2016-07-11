@@ -106,7 +106,7 @@ func (processor *ProcessorStashPullRequest) process() error {
 		return err
 	}
 
-	processor.logger.Infof(":: successfully builded")
+	processor.logger.Infof(":: successfully built")
 
 	err = processor.test()
 	if err != nil {
