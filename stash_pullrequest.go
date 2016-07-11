@@ -441,7 +441,7 @@ func (processor *ProcessorStashPullRequest) prepareSources(
 		processor.task.Host, processor.task.Project, processor.task.Repository,
 	)
 
-	_, err = processor.spawn("git", "clone", url, sources)
+	_, err = processor.spawn("git", "clone", "--recursive",  url, sources)
 	if err != nil {
 		return err
 	}
