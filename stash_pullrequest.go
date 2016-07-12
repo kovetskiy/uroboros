@@ -108,17 +108,19 @@ func (processor *ProcessorStashPullRequest) process() error {
 
 	processor.logger.Infof(":: successfully built")
 
+	err = processor.lint()
+	if err != nil {
+		return err
+	}
+
+	processor.logger.Infof(":: successfully linted")
+
 	err = processor.test()
 	if err != nil {
 		return err
 	}
 
 	processor.logger.Infof(":: successfully tested")
-
-	err = processor.lint()
-	if err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -207,6 +209,7 @@ func (processor *ProcessorStashPullRequest) comment(
 }
 
 func (processor *ProcessorStashPullRequest) lint() error {
+	failures := []string{}
 	for linter, cmd := range processor.resources.linters {
 		processor.logger.Infof(
 			":: linting source code using %s",
@@ -224,10 +227,8 @@ func (processor *ProcessorStashPullRequest) lint() error {
 					processor.logger.Error(line)
 				}
 
-				return fmt.Errorf(
-					"linter %s exited with non-zero exit code",
-					linter,
-				)
+				failures = append(failures, linter)
+				continue
 			}
 
 			return hierr.Errorf(
@@ -235,6 +236,18 @@ func (processor *ProcessorStashPullRequest) lint() error {
 				"an error occurred while linting source code",
 			)
 		}
+	}
+
+	if len(failures) > 0 {
+		subject := "linter"
+		if len(failures) > 1 {
+			subject = "linters"
+		}
+
+		return fmt.Errorf(
+			"%s %s exited with non-zero exit code",
+			subject, strings.Join(failures, ", "),
+		)
 	}
 
 	return nil
