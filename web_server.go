@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/kovetskiy/lorg"
-	"github.com/seletskiy/hierr"
+	"github.com/reconquest/hierr-go"
 )
 
 const (

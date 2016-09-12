@@ -3,7 +3,7 @@ package main
 import (
 	"os/exec"
 
-	"github.com/kovetskiy/executil"
+	"github.com/reconquest/executil-go"
 	"github.com/kovetskiy/lorg"
 )
 

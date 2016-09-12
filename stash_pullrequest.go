@@ -10,9 +10,9 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/kovetskiy/executil"
+	"github.com/reconquest/executil-go"
 	"github.com/kovetskiy/stash"
-	"github.com/seletskiy/hierr"
+	"github.com/reconquest/hierr-go"
 	"github.com/seletskiy/tplutil"
 )
 

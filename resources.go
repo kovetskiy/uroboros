@@ -7,7 +7,7 @@ import (
 
 	"github.com/kovetskiy/ko"
 	"github.com/kovetskiy/stash"
-	"github.com/seletskiy/hierr"
+	"github.com/reconquest/hierr-go"
 )
 
 type config struct {
