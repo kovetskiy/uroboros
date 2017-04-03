@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"regexp"
+	"strings"
 )
 
 var reStashURL = regexp.MustCompile(
@@ -32,7 +33,7 @@ func NewTaskStashPullRequest(url string) (*TaskStashPullRequest, error) {
 		URL:        url,
 		BasicURL:   matches[1],
 		Host:       matches[2],
-		Project:    matches[5],
+		Project:    strings.ToLower(matches[5]),
 		Repository: matches[6],
 		Identifier: matches[7],
 	}
