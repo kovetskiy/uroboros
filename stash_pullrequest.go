@@ -10,8 +10,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/reconquest/executil-go"
 	"github.com/kovetskiy/stash"
+	"github.com/reconquest/executil-go"
 	"github.com/reconquest/hierr-go"
 	"github.com/seletskiy/tplutil"
 )
@@ -482,7 +482,7 @@ func (processor *ProcessorStashPullRequest) prepareSources(
 }
 
 func (processor *ProcessorStashPullRequest) goget() (string, error) {
-	return processor.spawn("go", "get", "-v", "-d")
+	return processor.spawn("go", "get", "-v", "-t", "-d")
 }
 
 func (processor *ProcessorStashPullRequest) gobuild() (string, error) {
